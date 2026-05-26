@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-Hacker 代谢与营养仪表盘 v3.0</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 1.5rem;
+        }
+        .container { max-width: 64rem; margin: 0 auto; }
+
+        .header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .header h1 { font-size: 1.875rem; font-weight: 700; color: #34d399; margin-bottom: 0.5rem; }
+        .header p { color: #94a3b8; }
+        .header .status { text-align: right; font-size: 0.875rem; color: #64748b; }
+        .header .status span { color: #34d399; font-weight: 700; }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        @media (min-width: 768px) {
+            .main-grid { grid-template-columns: 1fr 2fr; }
+        }
+
+        .input-panel { border-top: 4px solid #10b981; }
+        .input-panel h2 { font-size: 1.25rem; font-weight: 600; color: #6ee7b7; margin-bottom: 1rem; }
+        .input-group { margin-bottom: 1rem; }
+        .input-group label { display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.25rem; }
+        .input-group input, .input-group select {
+            width: 100%;
+            background: #1e293b;
+            color: #fff;
+            border: 1px solid #475569;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .input-group input:focus, .input-group select:focus { border-color: #10b981; }
+
+        .diet-selector {
+            padding-top: 0.75rem;
+            border-top: 1px solid #334155;
+        }
+        .diet-selector label {
+            display: block;
+            color: #34d399;
+            font-weight: 700;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        .diet-selector select {
+            width: 100%;
+            background: #0f172a;
+            color: #6ee7b7;
+            border: 1px solid #064e3b;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .stats-panel h2 { font-size: 1.25rem; font-weight: 600; color: #6ee7b7; margin-bottom: 1rem; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .stat-card {
+            background: #1e293b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #334155;
+        }
+        .stat-card.highlight { border-color: #064e3b; box-shadow: 0 0 15px rgba(16,185,129,0.2); }
+        .stat-label { color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.25rem; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: #fff; }
+        .stat-value.emerald { color: #34d399; }
+        .stat-unit { font-size: 0.875rem; font-weight: 400; }
+        .stat-unit-dim { color: #64748b; }
+        .stat-unit-em { color: #047857; }
+
+        .logic-box {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background: rgba(30,41,59,0.5);
+            border: 1px solid #334155;
+        }
+        .logic-box h4 { color: #34d399; font-weight: 600; margin-bottom: 0.25rem; }
+        .logic-box p { font-size: 0.875rem; color: #cbd5e1; }
+
+        /* Macro panel */
+        .macro-panel { margin-bottom: 2rem; }
+        .macro-panel h2 { font-size: 1.25rem; font-weight: 600; color: #6ee7b7; margin-bottom: 1.5rem; }
+        .macro-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .macro-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .macro-card {
+            background: #1e293b;
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            border: 1px solid #334155;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .macro-card.train { border-color: #064e3b; box-shadow: 0 0 15px rgba(16,185,129,0.15); }
+        .macro-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-bottom-left-radius: 0.5rem;
+        }
+        .badge-rest { background: #334155; color: #cbd5e1; }
+        .badge-train { background: #059669; color: #fff; }
+        .macro-card h3 { font-size: 1.125rem; font-weight: 700; color: #fff; margin-bottom: 0.25rem; }
+        .macro-card .macro-sub { color: #94a3b8; font-size: 0.875rem; margin-bottom: 1rem; }
+        .macro-sub b { font-weight: 700; }
+
+        .macro-row { margin-bottom: 1rem; }
+        .macro-row .row-header { display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.25rem; }
+        .macro-row .row-note { font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem; }
+        .macro-row .row-note.green { color: #10b981; }
+        .macro-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: #0f172a;
+            overflow: hidden;
+        }
+        .macro-bar .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+        .bar-blue   { background: #3b82f6; }
+        .bar-purple { background: #8b5deb; }
+        .bar-yellow { background: #eab308; }
+        .text-blue   { color: #60a5fa; }
+        .text-purple { color: #c084fc; }
+        .text-yellow { color: #facc15; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div>
+                <h1>&#x26A1; 极客代谢监控中心 (Bio-Hacker OS)</h1>
+                <p>基于 Katch-McArdle 与多维饮食模式的自动配餐引擎</p>
+            </div>
+            <div class="status">
+                系统状态: <span>在线 (动态重算中)</span>
+            </div>
+        </header>
+
+        <!-- 参数 + 代谢状态 -->
+        <div class="main-grid">
+            <div class="glass-card input-panel">
+                <h2>&#x2699;&#xFE0F; 身体与策略参数</h2>
+                <div class="input-group">
+                    <label>体重 (kg)</label>
+                    <input type="number" id="inp-weight" value="44.0" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label>体脂率 (%)</label>
+                    <input type="number" id="inp-fat" value="23.6" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label>骨骼肌重量 (kg)</label>
+                    <input type="number" id="inp-muscle" value="17.8" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label>日常活动系数</label>
+                    <select id="inp-activity">
+                        <option value="1.2">久坐不动 (1.2)</option>
+                        <option value="1.375" selected>轻度活动 (1.375)</option>
+                        <option value="1.55">中度运动/举铁 (1.55)</option>
+                        <option value="1.725">高强度运动 (1.725)</option>
+                    </select>
+                </div>
+                <div class="diet-selector">
+                    <label>&#x1F9EC; 当前饮食架构 (算法切换)</label>
+                    <select id="inp-diet">
+                        <option value="keto" selected>&#x1F969; 生酮 / 靶向生酮 (Keto/TKD)</option>
+                        <option value="low_carb">&#x1F951; 温和低碳控糖 (Low-Carb)</option>
+                        <option value="mediterranean">&#x1F957; 地中海抗炎 (Mediterranean)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="glass-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+                <div>
+                    <h2 style="font-size:1.25rem;font-weight:600;color:#6ee7b7;margin-bottom:1rem;">&#x1F4CA; 代谢引擎基础状态</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">去脂体重 (LBM)</div>
+                            <div class="stat-value"><span id="val-lbm">33.6</span> <span class="stat-unit stat-unit-dim">kg</span></div>
+                        </div>
+                        <div class="stat-card highlight">
+                            <div class="stat-label">绝对碳水缓冲池极限</div>
+                            <div class="stat-value emerald"><span id="val-sink">327</span> <span class="stat-unit stat-unit-em">g</span></div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">基础代谢率 (BMR)</div>
+                            <div class="stat-value"><span id="val-bmr">1096</span> <span class="stat-unit stat-unit-dim">kcal</span></div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">每日总消耗 (TDEE)</div>
+                            <div class="stat-value"><span id="val-tdee">1507</span> <span class="stat-unit stat-unit-dim">kcal</span></div>
+                        </div>
+                    </div>
+                    <div class="logic-box">
+                        <h4>当前算法逻辑：</h4>
+                        <p id="logic-desc"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 宏量营养素模块 -->
+        <div class="glass-card macro-panel">
+            <h2>&#x2696;&#xFE0F; 宏量营养素精准摄入方案</h2>
+            <div class="macro-grid">
+                <!-- 休息日 -->
+                <div class="macro-card" id="rest-card">
+                    <div class="macro-badge badge-rest">维持与恢复</div>
+                    <h3>&#x1F9D8;&#x200D;&#x2640;&#xFE0F; 休息日 (无抗阻训练)</h3>
+                    <p class="macro-sub">热量目标: <b style="color:#fff;" id="val-rest-cals">0</b> kcal (维持基线 TDEE)</p>
+                    <div class="macro-row">
+                        <div class="row-header">
+                            <span class="text-blue" style="font-weight:600;">碳水 (Carbs) - <span id="val-rest-carb-pct">0</span>%</span>
+                            <span style="color:#fff;font-weight:700;" id="val-rest-carb">0</span><span style="color:#fff;"> g</span>
+                        </div>
+                        <div class="row-note" id="val-rest-carb-desc"></div>
+                        <div class="macro-bar"><div class="bar-fill bar-blue" id="bar-rest-carb"></div></div>
+                    </div>
+                    <div class="macro-row">
+                        <div class="row-header">
+                            <span class="text-purple" style="font-weight:600;">蛋白质 (Protein) - <span id="val-rest-pro-pct">0</span>%</span>
+                            <span style="color:#fff;font-weight:700;" id="val-rest-protein">0</span><span style="color:#fff;"> g</span>
+                        </div>
+                        <div class="row-note" id="val-rest-pro-desc"></div>
+                        <div class="macro-bar"><div class="bar-fill bar-purple" id="bar-rest-protein-bar"></div></div>
+                    </div>
+                    <div class="macro-row">
+                        <div class="row-header">
+                            <span class="text-yellow" style="font-weight:600;">脂肪 (Fat) - <span id="val-rest-fat-pct">0</span>%</span>
+                            <span style="color:#fff;font-weight:700;" id="val-rest-fat">0</span><span style="color:#fff;"> g</span>
+                        </div>
+                        <div class="row-note">主要或辅助燃料，填补剩余缺口</div>
+                        <div class="macro-bar"><div class="bar-fill bar-yellow" id="bar-rest-fat-bar"></div></div>
+                    </div>
+                </div>
+
+                <!-- 训练日 -->
+                <div class="macro-card train" id="train-card">
+                    <div class="macro-badge badge-train">肌肉合成期</div>
+                    <h3>&#x1F3CB;&#xFE0F;&#x200D;&#x2640;&#xFE0F; 训练日 (大重量举铁)</h3>
+                    <p class="macro-sub">热量目标: <b style="color:#34d399;" id="val-train-cals">0</b> kcal (+200kcal 微盈余)</p>
+                    <div class="macro-row">
+                        <div class="row-header">
+                            <span class="text-blue" style="font-weight:600;">碳水 (Carbs) - <span id="val-train-carb-pct">0</span>%</span>
+                            <span style="color:#fff;font-weight:700;" id="val-train-carb">0</span><span style="color:#fff;"> g</span>
+                        </div>
+                        <div class="row-note green" id="val-train-carb-desc"></div>
+                        <div class="macro-bar"><div class="bar-fill bar-blue" id="bar-train-carb"></div></div>
+                    </div>
+                    <div class="macro-row">
+                        <div class="row-header">
+                            <span class="text-purple" style="font-weight:600;">蛋白质 (Protein) - <span id="val-train-pro-pct">0</span>%</span>
+                            <span style="color:#fff;font-weight:700;" id="val-train-protein">0</span><span style="color:#fff;"> g</span>
+                        </div>
+                        <div class="row-note">拉高至高点，修复并合成新肌纤维</div>
+                        <div class="macro-bar"><div class="bar-fill bar-purple" id="bar-train-protein-bar"></div></div>
+                    </div>
+                    <div class="macro-row">
+                        <div class="row-header">
+                            <span class="text-yellow" style="font-weight:600;">脂肪 (Fat) - <span id="val-train-fat-pct">0</span>%</span>
+                            <span style="color:#fff;font-weight:700;" id="val-train-fat">0</span><span style="color:#fff;"> g</span>
+                        </div>
+                        <div class="row-note">填补热量缺口，稳固荷尔蒙分泌</div>
+                        <div class="macro-bar"><div class="bar-fill bar-yellow" id="bar-train-fat-bar"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        var $ = function(id) { return document.getElementById(id); };
+        var inpW = $('inp-weight');
+        var inpF = $('inp-fat');
+        var inpM = $('inp-muscle');
+        var inpA = $('inp-activity');
+        var inpD = $('inp-diet');
+
+        function recalc() {
+            var weight   = parseFloat(inpW.value) || 0;
+            var bodyFat  = parseFloat(inpF.value) || 0;
+            var muscle   = parseFloat(inpM.value) || 0;
+            var activity = parseFloat(inpA.value) || 1.375;
+            var dietMode = inpD.value;
+
+            var lbm  = weight * (1 - bodyFat / 100);
+            var bmr  = Math.round(370 + 21.6 * lbm);
+            var tdee = Math.round(bmr * activity);
+            var sink = Math.round(60 + muscle * 15);
+            var trainCals = tdee + 200;
+
+            $('val-lbm').textContent  = lbm.toFixed(1);
+            $('val-sink').textContent = sink;
+            $('val-bmr').textContent  = bmr;
+            $('val-tdee').textContent = tdee;
+
+            // Logic desc
+            var logicDesc;
+            if (dietMode === 'keto') {
+                logicDesc = "绝对压制碳水以燃烧体脂。训练日通过极小量的靶向碳水(TKD)配合肌酸推入肌肉，防止脂肪囤积。";
+            } else if (dietMode === 'low_carb') {
+                logicDesc = "维持温和胰岛素水平。碳水供能占20-25%，优先选择低GI碳水，平衡抗炎减脂与运动表现。";
+            } else {
+                logicDesc = "注重抗炎的均衡模式。碳水占比40-45%，需优先选择高纤粗粮。适合激素平稳期或大强度耐力训练期。";
+            }
+            $('logic-desc').textContent = logicDesc;
+
+            // --- Rest day macros ---
+            var restCarb, restProtein, restCarbDesc, restProDesc;
+
+            if (dietMode === 'keto') {
+                restCarb = 20;
+                restProtein = Math.round(weight * 1.8);
+                restCarbDesc = "锁死在极低值(20g)，维持基础酮症与深度燃脂";
+                restProDesc = "1.8g/kg：维持现有肌肉质量";
+            } else if (dietMode === 'low_carb') {
+                restCarb = Math.round((tdee * 0.20) / 4);
+                restProtein = Math.round(weight * 1.8);
+                restCarbDesc = "占总热量20%，避免引发胰岛素海啸";
+                restProDesc = "1.8g/kg：维持优质蛋白质摄入";
+            } else {
+                restCarb = Math.round((tdee * 0.40) / 4);
+                restProtein = Math.round(weight * 1.5);
+                restCarbDesc = "占总热量40%，需选择燕麦/豆类等优质慢碳";
+                restProDesc = "1.5g/kg：适中蛋白质摄入";
+            }
+
+            var restFatCal = tdee - (restCarb * 4) - (restProtein * 4);
+            var restFat = Math.max(0, Math.round(restFatCal / 9));
+            var restTotalCals = (restCarb * 4) + (restProtein * 4) + (restFat * 9);
+            var restCarbPct = Math.round(((restCarb * 4) / restTotalCals) * 100);
+            var restProPct  = Math.round(((restProtein * 4) / restTotalCals) * 100);
+            var restFatPct  = Math.round(((restFat * 9) / restTotalCals) * 100);
+
+            $('val-rest-cals').textContent = tdee;
+            $('val-rest-carb').textContent = restCarb;
+            $('val-rest-protein').textContent = restProtein;
+            $('val-rest-fat').textContent = restFat;
+            $('val-rest-carb-pct').textContent = restCarbPct;
+            $('val-rest-pro-pct').textContent = restProPct;
+            $('val-rest-fat-pct').textContent = restFatPct;
+            $('val-rest-carb-desc').textContent = restCarbDesc;
+            $('val-rest-pro-desc').textContent = restProDesc;
+            $('bar-rest-carb').style.width = restCarbPct + '%';
+            $('bar-rest-protein-bar').style.width = restProPct + '%';
+            $('bar-rest-fat-bar').style.width = restFatPct + '%';
+
+            // --- Training day macros ---
+            var trainCarb, trainProtein, trainCarbDesc;
+
+            if (dietMode === 'keto') {
+                trainCarb = 45;
+                trainProtein = Math.round(weight * 2.2);
+                trainCarbDesc = "含额外25g快碳，仅限训练前后配合肌酸服用，精准入肌";
+            } else if (dietMode === 'low_carb') {
+                trainCarb = Math.round((trainCals * 0.25) / 4);
+                trainProtein = Math.round(weight * 2.2);
+                trainCarbDesc = "占总热量25%，训练后可优先安排大部分碳水额度";
+            } else {
+                trainCarb = Math.round((trainCals * 0.45) / 4);
+                trainProtein = Math.round(weight * 2.0);
+                trainCarbDesc = "占总热量45%，提供充足糖原储备以应对大容量训练";
+            }
+
+            var trainFatCal = trainCals - (trainCarb * 4) - (trainProtein * 4);
+            var trainFat = Math.max(0, Math.round(trainFatCal / 9));
+            var trainTotalCals = (trainCarb * 4) + (trainProtein * 4) + (trainFat * 9);
+            var trainCarbPct = Math.round(((trainCarb * 4) / trainTotalCals) * 100);
+            var trainProPct  = Math.round(((trainProtein * 4) / trainTotalCals) * 100);
+            var trainFatPct  = Math.round(((trainFat * 9) / trainTotalCals) * 100);
+
+            $('val-train-cals').textContent = trainCals;
+            $('val-train-carb').textContent = trainCarb;
+            $('val-train-protein').textContent = trainProtein;
+            $('val-train-fat').textContent = trainFat;
+            $('val-train-carb-pct').textContent = trainCarbPct;
+            $('val-train-pro-pct').textContent = trainProPct;
+            $('val-train-fat-pct').textContent = trainFatPct;
+            $('val-train-carb-desc').textContent = trainCarbDesc;
+            $('bar-train-carb').style.width = trainCarbPct + '%';
+            $('bar-train-protein-bar').style.width = trainProPct + '%';
+            $('bar-train-fat-bar').style.width = trainFatPct + '%';
+        }
+
+        inpW.addEventListener('input', recalc);
+        inpF.addEventListener('input', recalc);
+        inpM.addEventListener('input', recalc);
+        inpA.addEventListener('change', recalc);
+        inpD.addEventListener('change', recalc);
+
+        recalc();
+    })();
+    </script>
+</body>
+</html>
